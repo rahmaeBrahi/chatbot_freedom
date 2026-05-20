@@ -12,13 +12,5 @@ class Config:
     
     LEADS_FILE = os.path.join(os.path.dirname(__file__), "leads.json")
     LARAVEL_API_URL = os.getenv("LARAVEL_API_URL", "https://freedomdental.ie/api/chatbot/lead")
-    
-    @classmethod
-    def ensure_leads_file(cls):
-        if not os.path.exists(cls.LEADS_FILE) or os.path.getsize(cls.LEADS_FILE) == 0:
-            import json
-            with open(cls.LEADS_FILE, 'w') as f:
-                json.dump([], f)
-
 config = Config()
-config.ensure_leads_file()
+
