@@ -31,13 +31,27 @@
         <section class="chat-messages" id="chat-messages">
             <div class="message bot-message">
                 <div class="message-content">
-                    Hi, I’m Freedom Dental Assistant. We provide professional dental care in Dublin including Dental Implants, Teeth Whitening, and more. 
+                    Hi, I'm Freedom Dental Assistant. We provide professional dental care in Dublin including Dental Implants, Teeth Whitening, and more. 
                     <br><br>
                     How can I help your smile today?
                 </div>
             </div>
         </section>
         
+        <!-- Calendar Picker (hidden by default) -->
+        <div id="calendar-picker" class="calendar-picker hidden">
+            <div class="calendar-header">
+                <button id="cal-prev" class="cal-nav">&#8249;</button>
+                <span id="cal-month-label"></span>
+                <button id="cal-next" class="cal-nav">&#8250;</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+            <div class="time-slots" id="time-slots">
+                <p class="slots-title">Select a time slot:</p>
+                <div class="slots-grid" id="slots-grid"></div>
+            </div>
+        </div>
+
         <div id="quick-replies" class="quick-replies"></div>
 
         <footer class="chat-input-area">

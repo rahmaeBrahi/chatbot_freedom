@@ -8,7 +8,6 @@ app = Flask(__name__)
 CORS(app)
 
 
-sessions = {}
 
 @app.after_request
 def add_header(response):
@@ -66,6 +65,22 @@ def chat():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/slots', methods=['GET'])
+def slots():
+    """Proxy to Laravel to get booked slots for a given date."""
+    import requests as req
+    from config import config
+    date = request.args.get('date')
+    if not date:
+        return jsonify({'error': 'date parameter required'}), 400
+    try:
+        base = config.LARAVEL_API_URL.replace('/api/chatbot/lead', '')
+        resp = req.get(f"{base}/api/chatbot/slots", params={'date': date}, timeout=8)
+        return jsonify(resp.json()), resp.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

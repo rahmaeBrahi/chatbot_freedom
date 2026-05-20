@@ -16,11 +16,12 @@ def book_appointment(
     email: str = Field(description="Email address"),
     phone: str = Field(description="Phone number"),
     reason: str = Field(description="Reason for visit or chosen service"),
-    preferred_time: str = Field(description="Preferred appointment time slot, chosen from the clinic's available hours: 9:00 AM, 10:00 AM, 11:00 AM, 12:00 PM, 1:00 PM, 2:00 PM, 3:00 PM, 4:00 PM, or 5:00 PM"),
+    appointment_date: str = Field(description="Chosen appointment date in YYYY-MM-DD format (from the calendar picker)"),
+    preferred_time: str = Field(description="Chosen appointment time slot e.g. 9:00 AM"),
     message: str = Field(description="Message or additional information")
 ):
     """
-    BOOK AN APPOINTMENT. Call this immediately once you have collected all 6 fields.
+    BOOK AN APPOINTMENT. Call this immediately once you have collected all 7 fields.
     """
     import requests
     import os
@@ -38,6 +39,7 @@ def book_appointment(
         "email": email,
         "phone": phone,
         "reason": reason,
+        "appointment_date": appointment_date,
         "preferred_time": preferred_time,
         "message": message,
         "timestamp": datetime.now().isoformat(),
@@ -122,15 +124,15 @@ Your goal is to answer patient questions and help them book an appointment.
 
 ### CONVERSATION FLOW & APPOINTMENT BOOKING:
 1. **Identify Need**: Answer any questions they have using the Knowledge Base. If they want to book, proceed to collect details.
-2. **Request All Details at Once**: When the user indicates they want to book an appointment, ask them to provide all the required booking information at once in a single, friendly message. The required fields are:
-   - Full Name (e.g., "Rahma Ebrahim") — treat this as ONE field, never split it or ask for first/last name separately
+2. **Request All Details at Once**: When the user indicates they want to book an appointment, the UI will show them a calendar to pick a date and time slot. Once they select both, ask them to provide the remaining details all at once:
+   - Full Name (e.g., "Rahma Ebrahim") — treat this as ONE field
    - Email Address
    - Phone Number
    - Reason for Visit (e.g., General Checkup, Teeth Whitening, Dental Implants, etc.)
-   - Preferred Time: one of our available appointment slots: **9:00 AM, 10:00 AM, 11:00 AM, 12:00 PM, 1:00 PM, 2:00 PM, 3:00 PM, 4:00 PM, or 5:00 PM** (Monday–Saturday only)
    - Message (Any additional notes or details)
-3. **Smart Extraction & Follow-up**: If the user replies with some but not all of the information, thank them for what they provided, list the specific missing details clearly, and ask them to provide only those missing items. Do NOT ask for first name and last name separately — Full Name is always ONE field.
-4. **FINAL STEP**: Once you have gathered all 6 pieces of information (Full Name, Email, Phone, Reason, Preferred Time, Message), call the `book_appointment` tool immediately.
+   NOTE: The appointment_date and preferred_time will be provided automatically from the calendar selection — DO NOT ask for them separately.
+3. **Smart Extraction & Follow-up**: If the user replies with some but not all of the information, thank them for what they provided, list the specific missing details clearly, and ask them to provide only those missing items. Do NOT ask for first/last name separately or for date/time (those come from the calendar).
+4. **FINAL STEP**: Once you have all 7 fields (Full Name, Email, Phone, Reason, appointment_date, preferred_time, Message), call the `book_appointment` tool immediately.
 
 ### APPOINTMENT STATUS TRACKING:
 Internally track which of these you have:
@@ -138,9 +140,10 @@ Internally track which of these you have:
 - Email: [ ]
 - Phone: [ ]
 - Reason: [ ]
-- Time: [ ]
+- Appointment Date: [ ] (from calendar)
+- Preferred Time: [ ] (from calendar)
 - Message: [ ]
-Once all 6 are checked, call the tool immediately!
+Once all 7 are checked, call the tool immediately!
 
 ### TIME & AVAILABILITY:
 - Current Dublin Time: {current_time_str} ({current_day})
