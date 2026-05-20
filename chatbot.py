@@ -18,10 +18,10 @@ def book_appointment(
     reason: str = Field(description="Reason for visit or chosen service"),
     appointment_date: str = Field(description="Chosen appointment date in YYYY-MM-DD format (from the calendar picker)"),
     preferred_time: str = Field(description="Chosen appointment time slot e.g. 9:00 AM"),
-    message: str = Field(description="Message or additional information")
+    message: str = Field(default="", description="Optional message or additional information. Default to empty string if not provided.")
 ):
     """
-    BOOK AN APPOINTMENT. Call this immediately once you have collected all 7 fields.
+    BOOK AN APPOINTMENT. Call this immediately once you have collected the 6 required fields.
     """
     import requests
     import os
@@ -41,7 +41,7 @@ def book_appointment(
         "reason": reason,
         "appointment_date": appointment_date,
         "preferred_time": preferred_time,
-        "message": message,
+        "message": message or "",
         "timestamp": datetime.now().isoformat(),
         "idempotency_key": "chatbot-" + datetime.now().strftime("%Y%m%d%H%M%S")
     }
@@ -129,21 +129,22 @@ Your goal is to answer patient questions and help them book an appointment.
    - Email Address
    - Phone Number
    - Reason for Visit (e.g., General Checkup, Teeth Whitening, Dental Implants, etc.)
-   - Message (Any additional notes or details)
+   - Message (Optional, any additional notes or details they want to add)
    NOTE: The appointment_date and preferred_time will be provided automatically from the calendar selection — DO NOT ask for them separately.
-3. **Smart Extraction & Follow-up**: If the user replies with some but not all of the information, thank them for what they provided, list the specific missing details clearly, and ask them to provide only those missing items. Do NOT ask for first/last name separately or for date/time (those come from the calendar).
-4. **FINAL STEP**: Once you have all 7 fields (Full Name, Email, Phone, Reason, appointment_date, preferred_time, Message), call the `book_appointment` tool immediately.
+3. **Smart Extraction & Follow-up**: If the user replies with some but not all of the information, thank them for what they provided, list the specific missing details clearly, and ask them to provide only those missing items. Do NOT ask for first/last name separately, or for date/time. DO NOT ask for the Message if they didn't provide one, as it is optional.
+4. **FINAL STEP**: Once you have the 6 required fields (Full Name, Email, Phone, Reason, appointment_date, preferred_time), call the `book_appointment` tool immediately. Pass whatever they provided for the Message parameter, or leave it blank if they did not provide one.
 
 ### APPOINTMENT STATUS TRACKING:
 Internally track which of these you have:
-- Full Name: [ ]
-- Email: [ ]
-- Phone: [ ]
-- Reason: [ ]
-- Appointment Date: [ ] (from calendar)
-- Preferred Time: [ ] (from calendar)
-- Message: [ ]
-Once all 7 are checked, call the tool immediately!
+- Full Name: [ ] (Required)
+- Email: [ ] (Required)
+- Phone: [ ] (Required)
+- Reason: [ ] (Required)
+- Appointment Date: [ ] (Required, from calendar)
+- Preferred Time: [ ] (Required, from calendar)
+- Message: [ ] (Optional, default to empty string if not provided)
+Once all 6 required fields are checked, call the tool immediately!
+"""ly!
 
 ### TIME & AVAILABILITY:
 - Current Dublin Time: {current_time_str} ({current_day})
