@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freedom Dental Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="chat-container">
+        <header class="chat-header">
+            <div class="header-info">
+                <div class="avatar">F</div>
+                <div class="status-info">
+                    <h1>Freedom Dental Assistant</h1>
+                    <p class="status">AI Assistant @ Freedom Dental</p>
+                </div>
+            </div>
+            <div class="online-indicator">
+                <span class="dot"></span> Online
+            </div>
+        </header>
+
+        <section class="chat-messages" id="chat-messages">
+            <div class="message bot-message">
+                <div class="message-content">
+                    Hi, I’m Freedom Dental Assistant. We provide professional dental care in Dublin including Dental Implants, Teeth Whitening, and more. 
+                    <br><br>
+                    How can I help your smile today?
+                </div>
+            </div>
+        </section>
+        
+        <div id="quick-replies" class="quick-replies"></div>
+
+        <footer class="chat-input-area">
+            <form id="chat-form">
+                <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off">
+                <button type="submit" id="send-btn">
+                    <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+                </button>
+            </form>
+        </footer>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

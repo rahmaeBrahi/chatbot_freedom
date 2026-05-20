@@ -1,0 +1,73 @@
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
+from chatbot import create_chatbot_agent
+from langchain_core.messages import HumanMessage, AIMessage
+import uuid
+
+app = Flask(__name__)
+CORS(app)
+
+
+sessions = {}
+
+@app.after_request
+def add_header(response):
+    response.headers['X-Frame-Options'] = 'ALLOWALL'
+    response.headers['Content-Security-Policy'] = "frame-ancestors *"
+    return response
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    user_input = data.get('message')
+    session_id = data.get('session_id')
+    
+    if not session_id:
+        session_id = str(uuid.uuid4())
+        
+    if session_id not in sessions:
+        sessions[session_id] = {
+            "agent": create_chatbot_agent(),
+            "history": []
+        }
+    
+    session = sessions[session_id]
+    
+    try:
+        response = session["agent"].invoke({
+            "input": user_input,
+            "chat_history": session["history"]
+        })
+        
+        output = response['output']
+        buttons = []
+        
+        import re
+        button_match = re.search(r'\[\[(.*?)\]\]', output)
+        if button_match:
+            button_str = button_match.group(1)
+            buttons = [b.strip() for b in button_str.split(',')]
+            output = re.sub(r'\[\[.*?\]\]', '', output).strip()
+        
+        session["history"].append(HumanMessage(content=user_input))
+        session["history"].append(AIMessage(content=output))
+        
+        if len(session["history"]) > 30:
+            session["history"] = session["history"][-30:]
+            
+        return jsonify({
+            "output": output,
+            "buttons": buttons,
+            "session_id": session_id
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
