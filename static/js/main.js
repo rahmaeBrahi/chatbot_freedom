@@ -4,6 +4,7 @@ const chatMessages = document.getElementById('chat-messages');
 const sendBtn = document.getElementById('send-btn');
 
 let sessionId = localStorage.getItem('session_id') || null;
+let chatHistory = [];
 
 const quickRepliesContainer = document.getElementById('quick-replies');
 
@@ -56,7 +57,8 @@ async function sendMessage(message) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 message: message,
-                session_id: sessionId 
+                session_id: sessionId,
+                history: chatHistory
             })
         });
 
@@ -66,6 +68,14 @@ async function sendMessage(message) {
 
         if (data.output) {
             appendMessage('bot', data.output);
+            
+            // Update history
+            chatHistory.push({ role: 'user', content: message });
+            chatHistory.push({ role: 'bot', content: data.output });
+            if (chatHistory.length > 20) {
+                chatHistory = chatHistory.slice(-20);
+            }
+            
             if (data.buttons) {
                 renderQuickReplies(data.buttons);
             }

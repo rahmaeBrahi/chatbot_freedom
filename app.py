@@ -22,25 +22,29 @@ def index():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    data = request.json
+    data = request.json or {}
     user_input = data.get('message')
     session_id = data.get('session_id')
+    history_data = data.get('history', [])
     
     if not session_id:
         session_id = str(uuid.uuid4())
         
-    if session_id not in sessions:
-        sessions[session_id] = {
-            "agent": create_chatbot_agent(),
-            "history": []
-        }
-    
-    session = sessions[session_id]
+    # Reconstruct history from client payload for stateless serverless compatibility
+    chat_history = []
+    for msg in history_data:
+        role = msg.get('role')
+        content = msg.get('content')
+        if role == 'user':
+            chat_history.append(HumanMessage(content=content))
+        elif role == 'bot':
+            chat_history.append(AIMessage(content=content))
     
     try:
-        response = session["agent"].invoke({
+        agent = create_chatbot_agent()
+        response = agent.invoke({
             "input": user_input,
-            "chat_history": session["history"]
+            "chat_history": chat_history
         })
         
         output = response['output']
@@ -52,12 +56,6 @@ def chat():
             button_str = button_match.group(1)
             buttons = [b.strip() for b in button_str.split(',')]
             output = re.sub(r'\[\[.*?\]\]', '', output).strip()
-        
-        session["history"].append(HumanMessage(content=user_input))
-        session["history"].append(AIMessage(content=output))
-        
-        if len(session["history"]) > 30:
-            session["history"] = session["history"][-30:]
             
         return jsonify({
             "output": output,
