@@ -8,7 +8,7 @@ class Config:
     CHATBOT_DATA_PATH = os.path.join(os.path.dirname(__file__), "Chatbot2.md")
     
     MODEL_NAME = "openai/gpt-4o-mini" 
-    TEMPERATURE = 0.3
+    TEMPERATURE = 0.7
     
     LEADS_FILE = os.path.join(os.path.dirname(__file__), "leads.json")
     LARAVEL_API_URL = os.getenv("LARAVEL_API_URL", "https://freedomdental.ie/api/chatbot/lead")
