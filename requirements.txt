@@ -5,7 +5,6 @@ python-dotenv
 pydantic
 langchain-community
 langchain-core
-langchain-classic
 flask
 flask-cors
 pytz

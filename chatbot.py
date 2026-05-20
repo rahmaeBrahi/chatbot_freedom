@@ -5,7 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage
 from config import config
@@ -144,7 +144,6 @@ Internally track which of these you have:
 - Preferred Time: [ ] (Required, from calendar)
 - Message: [ ] (Optional, default to empty string if not provided)
 Once all 6 required fields are checked, call the tool immediately!
-"""ly!
 
 ### TIME & AVAILABILITY:
 - Current Dublin Time: {current_time_str} ({current_day})
