@@ -12,8 +12,7 @@ from config import config
 
 @tool
 def book_appointment(
-    first_name: str = Field(description="User's first name"),
-    last_name: str = Field(description="User's last name"),
+    full_name: str = Field(description="User's full name (first and last name together)"),
     email: str = Field(description="Email address"),
     phone: str = Field(description="Phone number"),
     reason: str = Field(description="Reason for visit or chosen service"),
@@ -21,13 +20,18 @@ def book_appointment(
     message: str = Field(description="Message or additional information")
 ):
     """
-    BOOK AN APPOINTMENT. Call this immediately once you have collected all 7 fields.
+    BOOK AN APPOINTMENT. Call this immediately once you have collected all 6 fields.
     """
     import requests
     import os
     import json
     from datetime import datetime
     
+    # Split full_name into first and last
+    name_parts = full_name.strip().split()
+    first_name = name_parts[0] if name_parts else full_name
+    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+
     data = {
         "first_name": first_name,
         "last_name": last_name,
@@ -119,25 +123,24 @@ Your goal is to answer patient questions and help them book an appointment.
 ### CONVERSATION FLOW & APPOINTMENT BOOKING:
 1. **Identify Need**: Answer any questions they have using the Knowledge Base. If they want to book, proceed to collect details.
 2. **Request All Details at Once**: When the user indicates they want to book an appointment, ask them to provide all the required booking information at once in a single, friendly message. The required fields are:
-   - Full Name (First and Last name)
+   - Full Name (e.g., "Rahma Ebrahim") — treat this as ONE field, never split it or ask for first/last name separately
    - Email Address
    - Phone Number
    - Reason for Visit (e.g., General Checkup, Teeth Whitening, Dental Implants, etc.)
    - Preferred Time (Any time, Morning, Midday, or Afternoon)
    - Message (Any additional notes or details)
-3. **Smart Extraction & Follow-up**: If the user replies with some but not all of the information, thank them for what they provided, list the specific missing details clearly, and ask them to provide only those missing items. Do not ask for any information they have already provided.
-4. **FINAL STEP**: Once you have gathered all 7 pieces of information (First Name, Last Name, Email, Phone, Reason, Preferred Time, Message), call the `book_appointment` tool immediately before saying anything else.
+3. **Smart Extraction & Follow-up**: If the user replies with some but not all of the information, thank them for what they provided, list the specific missing details clearly, and ask them to provide only those missing items. Do NOT ask for first name and last name separately — Full Name is always ONE field.
+4. **FINAL STEP**: Once you have gathered all 6 pieces of information (Full Name, Email, Phone, Reason, Preferred Time, Message), call the `book_appointment` tool immediately.
 
 ### APPOINTMENT STATUS TRACKING:
 Internally track which of these you have:
-- First Name: [ ]
-- Last Name: [ ]
+- Full Name: [ ]
 - Email: [ ]
 - Phone: [ ]
 - Reason: [ ]
 - Time: [ ]
 - Message: [ ]
-Once all are checked, use the tool!
+Once all 6 are checked, call the tool immediately!
 
 ### TIME & AVAILABILITY:
 - Current Dublin Time: {current_time_str} ({current_day})
