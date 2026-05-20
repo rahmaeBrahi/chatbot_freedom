@@ -1,14 +1,13 @@
 import os
 import json
 from datetime import datetime
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import Optional
+from pydantic import Field
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.tools import tool
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
 from config import config
+
 
 @tool
 def book_appointment(
@@ -24,11 +23,7 @@ def book_appointment(
     BOOK AN APPOINTMENT. Call this immediately once you have collected the 6 required fields.
     """
     import requests
-    import os
-    import json
-    from datetime import datetime
-    
-    # Split full_name into first and last
+
     name_parts = full_name.strip().split()
     first_name = name_parts[0] if name_parts else full_name
     last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
@@ -45,28 +40,24 @@ def book_appointment(
         "timestamp": datetime.now().isoformat(),
         "idempotency_key": "chatbot-" + datetime.now().strftime("%Y%m%d%H%M%S")
     }
-    
-    print(f"DEBUG: Attempting to submit lead details to Laravel for {first_name} {last_name}...")
-    
-    # Try to hit the Laravel API
+
+    print(f"DEBUG: Submitting lead for {first_name} {last_name}...")
+
     try:
-        from config import config
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
-        print(f"DEBUG: POSTing lead data to {config.LARAVEL_API_URL}...")
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        print(f"DEBUG: POSTing to {config.LARAVEL_API_URL}...")
         response = requests.post(config.LARAVEL_API_URL, json=data, headers=headers, timeout=15)
         if response.status_code in [200, 201]:
-            print(f"DEBUG: Success! Lead submitted to Laravel API.")
+            print("DEBUG: Success!")
         else:
-            print(f"DEBUG: Laravel API failed with status {response.status_code} - {response.text}")
-            return f"ERROR: The server returned an error: {response.status_code}. Please try again later."
+            print(f"DEBUG: API error {response.status_code} - {response.text}")
+            return f"ERROR: Server returned {response.status_code}. Please try again later."
     except Exception as e:
-        print(f"DEBUG: Exception hitting Laravel API: {e}")
-        return "ERROR: Unable to connect to our database. Please try again later or contact us directly."
+        print(f"DEBUG: Exception: {e}")
+        return "ERROR: Unable to connect to our database. Please try again or contact us directly."
 
     return f"SUCCESS: Contact details registered for {first_name}. Our team has been notified."
+
 
 def load_knowledge_base():
     if not os.path.exists(config.CHATBOT_DATA_PATH):
@@ -74,34 +65,18 @@ def load_knowledge_base():
     with open(config.CHATBOT_DATA_PATH, 'r', encoding='utf-8') as f:
         return f.read()
 
-def create_chatbot_agent():
-    knowledge_base = load_knowledge_base()
-    
-    llm = ChatOpenAI(
-        openai_api_key=config.OPENROUTER_API_KEY,
-        openai_api_base="https://openrouter.ai/api/v1",
-        model_name=config.MODEL_NAME,
-        temperature=config.TEMPERATURE,
-        default_headers={
-            "HTTP-Referer": "https://flexiboost.ie", 
-            "X-Title": "Flexi Boost AI Assistant"
-        }
-    )
-    
-    tools = [book_appointment]
-    
+
+def build_system_prompt(knowledge_base: str) -> str:
     import pytz
     dublin_tz = pytz.timezone('Europe/Dublin')
     now = datetime.now(dublin_tz)
     current_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
     current_day = now.strftime("%A")
-    
     is_business_hours = (now.weekday() < 6) and (9 <= now.hour < 17 or (now.hour == 17 and now.minute <= 30))
-    
-    print(f"DEBUG: Dublin Time: {current_time_str} ({current_day})")
-    print(f"DEBUG: Is Business Hours: {is_business_hours}")
-    
-    system_prompt = f"""
+
+    print(f"DEBUG: Dublin Time: {current_time_str} ({current_day}), Business Hours: {is_business_hours}")
+
+    return f"""
 You are Freedom Dental Assistant, the AI Assistant for Freedom Dental, a Dublin-based dental clinic.
 Your goal is to answer patient questions and help them book an appointment.
 
@@ -123,79 +98,96 @@ Your goal is to answer patient questions and help them book an appointment.
 - **Tone**: Professional, empathetic, helpful, and clear.
 
 ### CONVERSATION FLOW & APPOINTMENT BOOKING:
-1. **Identify Need**: Answer any questions they have using the Knowledge Base. If they want to book, proceed to collect details.
-2. **Request All Details at Once**: When the user indicates they want to book an appointment, the UI will show them a calendar to pick a date and time slot. Once they select both, ask them to provide the remaining details all at once:
+1. **Identify Need**: Answer any questions they have using the Knowledge Base. If they want to book, proceed.
+2. **Request All Details at Once**: When the user wants to book, the UI shows a calendar. Once they select date/time, ask for:
    - Full Name (e.g., "Rahma Ebrahim") — treat this as ONE field
    - Email Address
    - Phone Number
    - Reason for Visit (e.g., General Checkup, Teeth Whitening, Dental Implants, etc.)
-   - Message (Optional, any additional notes or details they want to add)
-   NOTE: The appointment_date and preferred_time will be provided automatically from the calendar selection — DO NOT ask for them separately.
-3. **Smart Extraction & Follow-up**: If the user replies with some but not all of the information, thank them for what they provided, list the specific missing details clearly, and ask them to provide only those missing items. Do NOT ask for first/last name separately, or for date/time. DO NOT ask for the Message if they didn't provide one, as it is optional.
-4. **FINAL STEP**: Once you have the 6 required fields (Full Name, Email, Phone, Reason, appointment_date, preferred_time), call the `book_appointment` tool immediately. Pass whatever they provided for the Message parameter, or leave it blank if they did not provide one.
+   - Message (Optional, any additional notes they want to add)
+   NOTE: The appointment_date and preferred_time come from the calendar — DO NOT ask for them separately.
+3. **Smart Extraction & Follow-up**: If the user provides some but not all info, thank them and ask only for what's missing. Do NOT ask for date/time or first/last name separately. Do NOT ask for Message if not provided.
+4. **FINAL STEP**: Once you have all 6 required fields (Full Name, Email, Phone, Reason, appointment_date, preferred_time), call the `book_appointment` tool immediately.
 
 ### APPOINTMENT STATUS TRACKING:
-Internally track which of these you have:
 - Full Name: [ ] (Required)
 - Email: [ ] (Required)
 - Phone: [ ] (Required)
 - Reason: [ ] (Required)
 - Appointment Date: [ ] (Required, from calendar)
 - Preferred Time: [ ] (Required, from calendar)
-- Message: [ ] (Optional, default to empty string if not provided)
-Once all 6 required fields are checked, call the tool immediately!
+- Message: [ ] (Optional)
+Once all 6 required fields are filled, call the tool immediately!
 
 ### TIME & AVAILABILITY:
 - Current Dublin Time: {current_time_str} ({current_day})
 - Business Hours: Monday to Saturday 09:00 - 17:30 (Ireland Time), Sunday Closed.
 - **CURRENT STATUS**: {"TEAM IS ONLINE - You can tell the user the clinic is open" if is_business_hours else "TEAM IS OFFLINE - You MUST inform the user the clinic is closed and follow the after-hours protocol"}
-- **After-Hours Protocol**: If the clinic is OFFLINE, inform the user they are currently closed and will respond during business hours. Still collect appointment details.
+- **After-Hours Protocol**: If OFFLINE, inform the user they are closed and will respond during business hours. Still collect appointment details.
 
 ### BUTTON SUGGESTIONS:
-To improve user experience, append suggested buttons at the end of your response using the format: `[[Button Text 1, Button Text 2, ...]]`.
+Append suggested buttons at the end of your response using: `[[Button Text 1, Button Text 2, ...]]`
 - **Welcome Menu**: `[[Book Appointment, Dental Implants, Teeth Whitening, General Cleaning, Ask a Question]]`
-- **Preferred Time Options** (use these when asking for preferred time): `[[9:00 AM, 10:00 AM, 11:00 AM, 12:00 PM, 1:00 PM, 2:00 PM, 3:00 PM, 4:00 PM, 5:00 PM]]`
 - **Contact Methods**: `[[Phone, Email]]`
 
 ### KNOWLEDGE BASE:
 {knowledge_base}
 """
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ])
-    
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    
-    return AgentExecutor(agent=agent, tools=tools, verbose=True)
 
-def chat_loop():
-    print("Freedom Dental Assistant: Hi! I'm Freedom Dental Assistant. How can I help your smile today?")
-    agent_executor = create_chatbot_agent()
-    chat_history = []
-    
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() in ["exit", "quit", "bye"]:
-            print("Freedom Dental Assistant: Goodbye! Have a great day.")
-            break
-            
-        response = agent_executor.invoke({
-            "input": user_input,
-            "chat_history": chat_history
-        })
-        
-        print(f"Freedom Dental Assistant: {response['output']}")
-        
-        chat_history.append(HumanMessage(content=user_input))
-        chat_history.append(AIMessage(content=response['output']))
-        
-        if len(chat_history) > 10:
-            chat_history = chat_history[-10:]
+def create_chatbot_agent():
+    """Creates and returns a simple tool-calling agent using langchain_core only."""
+    knowledge_base = load_knowledge_base()
+    system_prompt = build_system_prompt(knowledge_base)
 
-if __name__ == "__main__":
-    chat_loop()
+    llm = ChatOpenAI(
+        openai_api_key=config.OPENROUTER_API_KEY,
+        openai_api_base="https://openrouter.ai/api/v1",
+        model_name=config.MODEL_NAME,
+        temperature=config.TEMPERATURE,
+        default_headers={
+            "HTTP-Referer": "https://freedomdental.ie",
+            "X-Title": "Freedom Dental Assistant"
+        }
+    )
 
+    tools = [book_appointment]
+    llm_with_tools = llm.bind_tools(tools)
+    tools_by_name = {t.name: t for t in tools}
+
+    class SimpleAgent:
+        def invoke(self, input_data: dict) -> dict:
+            # Build message list
+            messages = [SystemMessage(content=system_prompt)]
+            for msg in input_data.get("chat_history", []):
+                messages.append(msg)
+            messages.append(HumanMessage(content=input_data["input"]))
+
+            last_response = None
+            # Agent loop — max 5 iterations to avoid infinite loops
+            for _ in range(5):
+                response = llm_with_tools.invoke(messages)
+                messages.append(response)
+                last_response = response
+
+                # No tool calls → final answer
+                if not getattr(response, "tool_calls", None):
+                    break
+
+                # Execute each tool call
+                for tc in response.tool_calls:
+                    tool_name = tc["name"]
+                    tool_args = tc["args"]
+                    print(f"DEBUG: Calling tool '{tool_name}' with args: {tool_args}")
+                    if tool_name in tools_by_name:
+                        result = tools_by_name[tool_name].invoke(tool_args)
+                    else:
+                        result = f"ERROR: Unknown tool '{tool_name}'"
+                    messages.append(ToolMessage(
+                        content=str(result),
+                        tool_call_id=tc["id"]
+                    ))
+
+            return {"output": last_response.content if last_response else "Sorry, I couldn't process that."}
+
+    return SimpleAgent()
