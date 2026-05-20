@@ -132,5 +132,23 @@ A: Inlays fit in grooves; Onlays extend over tooth cusps. Crafted for precision 
 
 ## General Clinic Information
 
+**Q: What is the name of the clinic?**
+A: Freedom Dental.
+
+**Q: What is the address of Freedom Dental?**
+A: 8 O'Connell Street Upper, Dublin 1, Co. Dublin, D01 N1F7.
+
+**Q: What is the main phone number?**
+A: 01 872 95 69.
+
+**Q: What is the emergency phone number?**
+A: 085 830 0289.
+
+**Q: What is the email address?**
+A: admin@freedomdental.ie.
+
+**Q: What are the opening hours?**
+A: Monday to Saturday, 9:00 am to 5:30 pm. Sunday closed.
+
 **Q: How can I book an appointment?**
 A: Call 01 872 95 69 or 085 830 0289, or use the website's Book Appointment page.
