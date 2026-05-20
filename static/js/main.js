@@ -7,6 +7,8 @@ const calendarGrid = document.getElementById('calendar-grid');
 const slotsGrid = document.getElementById('slots-grid');
 const calMonthLabel = document.getElementById('cal-month-label');
 const quickRepliesContainer = document.getElementById('quick-replies');
+const confirmWrap = document.getElementById('confirm-slot-wrap');
+const confirmBtn = document.getElementById('confirm-slot-btn');
 
 let sessionId = localStorage.getItem('session_id') || null;
 let chatHistory = [];
@@ -111,6 +113,8 @@ function selectSlot(slot, btn) {
     slotsGrid.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('slot-selected'));
     btn.classList.add('slot-selected');
     calSelectedTime = slot;
+    // Show confirm button
+    confirmWrap.classList.remove('hidden');
 }
 
 /* ── Show/hide calendar ── */
@@ -118,6 +122,7 @@ function showCalendar() {
     calCurrentDate = new Date();
     calSelectedDate = null;
     calSelectedTime = null;
+    confirmWrap.classList.add('hidden');
     document.getElementById('time-slots').style.display = 'none';
     renderCalendar();
     calendarPicker.classList.remove('hidden');
@@ -134,6 +139,20 @@ document.getElementById('cal-prev').addEventListener('click', () => {
 document.getElementById('cal-next').addEventListener('click', () => {
     calCurrentDate.setMonth(calCurrentDate.getMonth() + 1);
     renderCalendar();
+});
+
+// Confirm button: auto-submit without typing
+confirmBtn.addEventListener('click', async () => {
+    if (!calSelectedDate || !calSelectedTime) return;
+    const dateLabel = calSelectedDate.toLocaleDateString('en-IE', { weekday:'long', day:'numeric', month:'long' });
+    const displayMsg = `📅 ${dateLabel} at ${calSelectedTime}`;
+    appendMessage('user', displayMsg);
+    clearQuickReplies();
+    hideCalendar();
+    showTypingIndicator();
+    // Build internal message with date/time tags for the AI
+    const internalMsg = `I'd like to book an appointment.\n[appointment_date: ${toYMD(calSelectedDate)}]\n[preferred_time: ${calSelectedTime}]`;
+    await sendMessageRaw(internalMsg);
 });
 
 /* ── Chat core ── */
@@ -162,34 +181,38 @@ function renderQuickReplies(buttons) {
 function clearQuickReplies() { quickRepliesContainer.innerHTML = ''; }
 
 async function handleButtonClick(text) {
-    // If user clicks "Book Appointment" show the calendar
     if (text.toLowerCase().includes('book appointment')) {
         showCalendar();
         appendMessage('user', text);
         clearQuickReplies();
         showTypingIndicator();
-        await sendMessage(text);
+        await sendMessageToServer(text);
         return;
     }
     appendMessage('user', text);
     clearQuickReplies();
     showTypingIndicator();
-    await sendMessage(text);
+    await sendMessageToServer(text);
+}
+
+async function sendMessageRaw(message) {
+    await sendMessageToServer(message);
 }
 
 async function sendMessage(message) {
-    // If calendar is visible, inject selected date/time into the message
     let fullMessage = message;
     if (!calendarPicker.classList.contains('hidden')) {
-        if (!calSelectedDate || !calSelectedTime) {
-            removeTypingIndicator();
-            appendMessage('bot', '📅 Please select a date and time slot from the calendar before continuing.');
-            return;
+        if (calSelectedDate && calSelectedTime) {
+            hideCalendar();
+            fullMessage = `${message}\n[appointment_date: ${toYMD(calSelectedDate)}]\n[preferred_time: ${calSelectedTime}]`;
+        } else {
+            hideCalendar();
         }
-        hideCalendar();
-        fullMessage = `${message}\n[appointment_date: ${toYMD(calSelectedDate)}]\n[preferred_time: ${calSelectedTime}]`;
     }
+    await sendMessageToServer(fullMessage);
+}
 
+async function sendMessageToServer(fullMessage) {
     try {
         const response = await fetch('/chat', {
             method: 'POST',

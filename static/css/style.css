@@ -384,3 +384,27 @@ body {
     text-decoration: line-through;
 }
 .slot-loading { font-size: 0.8rem; color: #94a3b8; grid-column: span 3; text-align: center; padding: 8px; }
+
+/* ── Confirm Button ── */
+.confirm-slot-wrap {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+}
+.confirm-slot-wrap.hidden { display: none; }
+.confirm-slot-btn {
+    width: 100%;
+    padding: 11px;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.3px;
+}
+.confirm-slot-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.confirm-slot-btn:active { transform: scale(0.98); }
+
