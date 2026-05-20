@@ -16,7 +16,7 @@ def book_appointment(
     email: str = Field(description="Email address"),
     phone: str = Field(description="Phone number"),
     reason: str = Field(description="Reason for visit or chosen service"),
-    preferred_time: str = Field(description="Preferred time (any, morning, midday, afternoon)"),
+    preferred_time: str = Field(description="Preferred appointment time slot, chosen from the clinic's available hours: 9:00 AM, 10:00 AM, 11:00 AM, 12:00 PM, 1:00 PM, 2:00 PM, 3:00 PM, 4:00 PM, or 5:00 PM"),
     message: str = Field(description="Message or additional information")
 ):
     """
@@ -127,7 +127,7 @@ Your goal is to answer patient questions and help them book an appointment.
    - Email Address
    - Phone Number
    - Reason for Visit (e.g., General Checkup, Teeth Whitening, Dental Implants, etc.)
-   - Preferred Time (Any time, Morning, Midday, or Afternoon)
+   - Preferred Time: one of our available appointment slots: **9:00 AM, 10:00 AM, 11:00 AM, 12:00 PM, 1:00 PM, 2:00 PM, 3:00 PM, 4:00 PM, or 5:00 PM** (Monday–Saturday only)
    - Message (Any additional notes or details)
 3. **Smart Extraction & Follow-up**: If the user replies with some but not all of the information, thank them for what they provided, list the specific missing details clearly, and ask them to provide only those missing items. Do NOT ask for first name and last name separately — Full Name is always ONE field.
 4. **FINAL STEP**: Once you have gathered all 6 pieces of information (Full Name, Email, Phone, Reason, Preferred Time, Message), call the `book_appointment` tool immediately.
@@ -151,7 +151,7 @@ Once all 6 are checked, call the tool immediately!
 ### BUTTON SUGGESTIONS:
 To improve user experience, append suggested buttons at the end of your response using the format: `[[Button Text 1, Button Text 2, ...]]`.
 - **Welcome Menu**: `[[Book Appointment, Dental Implants, Teeth Whitening, General Cleaning, Ask a Question]]`
-- **Preferred Time Options**: `[[Any time, Morning, Midday, Afternoon]]`
+- **Preferred Time Options** (use these when asking for preferred time): `[[9:00 AM, 10:00 AM, 11:00 AM, 12:00 PM, 1:00 PM, 2:00 PM, 3:00 PM, 4:00 PM, 5:00 PM]]`
 - **Contact Methods**: `[[Phone, Email]]`
 
 ### KNOWLEDGE BASE:
